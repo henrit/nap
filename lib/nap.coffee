@@ -15,6 +15,8 @@ rimraf = require 'rimraf'
 crypto = require 'crypto'
 zlib = require 'zlib'
 
+fingerprintCache = { js: {}, jst: {}, css: {} }
+
 # The initial configuration function. Pass it options such as `assets` to let nap determine which
 # files to put together in packages.
 # 
@@ -46,11 +48,9 @@ module.exports = (options = {}) =>
     throw new Error "The directory #{@publicDir} doesn't exist"
 
   if options.prepackaged
-    fs.readFile(process.cwd() + @_outputDir + '/fingerprints.json', (err, data) =>
+    fs.readFile process.cwd() + @_outputDir + '/fingerprints.json', (err, data) =>
       throw err if err
       fingerprintCache = JSON.parse data
-      console.log "Fingerprints are", fingerprintCache
-    )
   else  
     # Clear out assets directory and package assets if mode is production
     rimraf.sync "#{process.cwd()}/#{@publicDir}/assets"
@@ -413,7 +413,6 @@ gzipPkg = (contents, filename, callback) =>
 # @param {String} pkgName The name of the package
 # @return {String} The md5 fingerprint to append
 
-fingerprintCache = { js: {}, jst: {}, css: {} }
 module.exports.fingerprintForPkg = fingerprintForPkg = (pkgType, pkgName, pkgContents) =>
   return fingerprintCache[pkgType][pkgName] if fingerprintCache[pkgType][pkgName]?
   throw new Error("nap.package() must be called before nap can be used in production mode") if pkgContents == undefined
