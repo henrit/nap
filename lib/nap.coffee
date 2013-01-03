@@ -44,12 +44,19 @@ module.exports = (options = {}) =>
   
   unless path.existsSync process.cwd() + @publicDir
     throw new Error "The directory #{@publicDir} doesn't exist"
-  
-  # Clear out assets directory and package assets if mode is production
-  rimraf.sync "#{process.cwd()}/#{@publicDir}/assets"
-  unless @usingMiddleware
-    fs.mkdirSync process.cwd() + @_outputDir, '0755'
-    fs.writeFileSync "#{process.cwd()}/#{@_outputDir}/.gitignore", "/*"
+
+  if options.prepackaged
+    fs.readFile(process.cwd() + @_outputDir + '/fingerprints.json', (err, data) =>
+      throw err if err
+      fingerprintCache = JSON.parse data
+      console.log "Fingerprints are", fingerprintCache
+    )
+  else  
+    # Clear out assets directory and package assets if mode is production
+    rimraf.sync "#{process.cwd()}/#{@publicDir}/assets"
+    unless @usingMiddleware
+      fs.mkdirSync process.cwd() + @_outputDir, '0755'
+      fs.writeFileSync "#{process.cwd()}/#{@_outputDir}/.gitignore", "/*"
   
   # Add any javascript necessary for templates (like the jade runtime)
   for filename in _.flatten @assets.jst
@@ -171,6 +178,8 @@ module.exports.package = (callback) =>
       writeFile filename , contents
       if @gzip then gzipPkg(contents, filename, finishCallback) else finishCallback()
       total++
+
+  fs.writeFile(process.cwd() + @_outputDir + '/fingerprints.json' , JSON.stringify fingerprintCache)
 
 # Instead of compiling & writing the packages to disk, nap will compile and serve the files in 
 # memory per request.
